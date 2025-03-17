@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, ChevronRight, Loader2, Wallet } from "lucide-react";
+import { ArrowUpRightFromSquare, CheckCircle, ChevronRight, Loader2, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import Link from "next/link";
 import { arbitrum, avalanche, base, bsc, mainnet, polygon } from "viem/chains";
 import { formatAddress } from "@/lib/utils";
-import { useTheme } from "next-themes";
+import { createPublicClient, formatEther, http } from "viem";
+import { supportedChains } from "@/lib/constants";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -21,7 +22,10 @@ export default function Home() {
   const [tipStatus, setTipStatus] = useState("idle"); // idle, processing, completed
   const [currentProcessingStep, setCurrentProcessingStep] = useState(0);
   const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
-  const { theme } = useTheme();
+  const [sourceTx, setSourceTx] = useState("");
+  const [destTx, setDestTx] = useState("");
+  const [userBalance, setUserBalance] = useState("0");
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   const chains = [
     { id: mainnet.id, name: "Ethereum", logo: "/eth.png", currency: "ETH" },
@@ -31,6 +35,24 @@ export default function Home() {
     { id: arbitrum.id, name: "Arbitrum", logo: "/arbitrum.png", currency: "ETH" },
     { id: avalanche.id, name: "Avalanche", logo: "/avax.png", currency: "AVAX" },
   ];
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!primaryWallet || !user) return;
+      setIsLoadingBalance(true);
+      const publicClient = createPublicClient({
+        chain: supportedChains[chains[selectedChain].id],
+        transport: http(supportedChains[chains[selectedChain].id].rpcUrls.default.http[0]),
+      });
+      const balance = await publicClient.getBalance({
+        address: primaryWallet.address,
+      })
+      setUserBalance(parseFloat(formatEther(balance)).toFixed(4));
+      setIsLoadingBalance(false);
+    };
+
+    fetchBalance();
+  }, [selectedChain, primaryWallet, user]);
 
   const processingSteps = [
     "Initiating transaction on ",
@@ -189,6 +211,7 @@ export default function Home() {
                             }`}
                           onClick={async () => {
                             if (primaryWallet?.connector.supportsNetworkSwitching()) {
+                              setIsLoadingBalance(true);
                               await primaryWallet.switchNetwork(chain.id);
                               setSelectedChain(idx)
                             }
@@ -209,9 +232,21 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <Label htmlFor="amount" className="text-base">
-                      Amount
-                    </Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="amount" className="text-base">
+                        Amount
+                      </Label>
+                      <div className="flex items-center text-sm text-stone-600 dark:text-gray-300">
+                        <span className="mr-2">Balance:</span>
+                        {isLoadingBalance ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-stone-500 dark:text-blue-400" />
+                        ) : (
+                          <span>
+                            {userBalance} {chains[selectedChain].currency}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="relative mt-2">
                       <Input
                         id="amount"
@@ -219,7 +254,7 @@ export default function Home() {
                         placeholder="0.0"
                         min="0"
                         step="0.01"
-                        className="pr-12 bg-stone-100 dark:bg-transparent border-stone-300 dark:border-gray-700 text-black dark:text-white"
+                        className="pr-12 bg-stone-100 dark:bg-gray-800 border-stone-300 dark:border-gray-700 text-black dark:text-white"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                       />
@@ -227,16 +262,24 @@ export default function Home() {
                         {selectedChain ? chains[selectedChain].currency : "ETH"}
                       </div>
                     </div>
+                    <div className="flex justify-end mt-2">
+                      <button
+                        type="button"
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        onClick={() => setAmount(userBalance)}
+                      >
+                        Use max
+                      </button>
+                    </div>
                   </div>
-
                   <Button
                     className="w-full bg-stone-600 hover:bg-stone-700 dark:bg-stone-600 dark:hover:bg-stone-700 text-white"
                     disabled={
-                      !amount || parseFloat(amount) <= 0
+                      !amount || amount >= userBalance || parseFloat(amount) <= 0
                     }
                     onClick={handleNextStep}
                   >
-                    Send Royalties <ChevronRight className="ml-2 h-4 w-4" />
+                    {amount >= userBalance ? "Insufficient Balance" : "Send Royalties"} <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               ) : (
@@ -280,7 +323,7 @@ export default function Home() {
                       {processingSteps.map((step, index) => (
                         <div
                           key={index}
-                          className={`flex items-center ${index <= currentProcessingStep
+                          className={`flex items-center w-full ${index <= currentProcessingStep
                             ? "text-black dark:text-white"
                             : "text-stone-400 dark:text-gray-500"
                             }`}
@@ -295,6 +338,9 @@ export default function Home() {
                             <div className="h-5 w-5 rounded-full border-2 border-stone-300 dark:border-gray-600 mr-3" />
                           )}
                           <span className="text-sm">{step + ((index == 0 || index == 1) ? chains[selectedChain].name : "")}</span>
+                          {(sourceTx != "" && index == 0) || (destTx != '' && index == 4) && <div onClick={() => {
+                            window.open("https://etherscan.io/tx/", "_blank")
+                          }} className="flex-1 flex justify-end items-center text-xs space-x-1 cursor-pointer hover:font-semibold"><p>View Tx</p> <ArrowUpRightFromSquare className="w-3 h-3" /> </div>}
                         </div>
                       ))}
                     </div>
