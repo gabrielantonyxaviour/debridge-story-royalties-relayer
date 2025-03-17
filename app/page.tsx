@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, ChevronRight, Loader2 } from "lucide-react";
+import { CheckCircle, ChevronRight, Loader2, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -14,6 +17,7 @@ export default function Home() {
   const [amount, setAmount] = useState("");
   const [tipStatus, setTipStatus] = useState("idle"); // idle, processing, completed
   const [currentProcessingStep, setCurrentProcessingStep] = useState(0);
+  const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
 
   const chains = [
     { id: "ethereum", name: "Ethereum", logo: "/eth.png" },
@@ -66,42 +70,81 @@ export default function Home() {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
   };
 
+  const isWalletConnected = !!primaryWallet && !!user;
+
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+    <div className="w-full min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-xl mx-auto">
+          <div className="flex justify-center items-center gap-2 mr-4 mb-3">
+            <Link href="/" className="flex items-center gap-3">
+              <Image
+                src="/debridge.jpeg"
+                alt="Debridge Logo"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <Image
+                src="/story.png"
+                alt="Story Logo"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            </Link>
+          </div>
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Support IP Asset Creators
+            <h1 className="text-3xl font-bold text-white">
+              deBridge x Story
             </h1>
-            <p className="mt-3 text-gray-600 dark:text-gray-300">
+            <p className="mt-3 text-gray-300">
               Tip creators directly with cross-chain compatibility
             </p>
           </div>
 
-          <Card className="border-none shadow-lg">
+          <Card className="border-none shadow-lg bg- text-white">
             <CardContent className="pt-6">
-              {step === 1 ? (
+              {!isWalletConnected ? (
+                <div className="space-y-6 py-8 text-center">
+                  <div className="flex justify-center mb-4">
+                    <Wallet className="h-16 w-16 text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Connect Your Wallet</h3>
+                  <p className="text-gray-300">
+                    Please connect your wallet to continue with tipping IP Asset creators
+                  </p>
+                  {/* This button will trigger Dynamic wallet connect modal */}
+                  <Button
+                    className="w-full bg-stone-900 hover:bg-stone-800 text-white"
+                    onClick={() => {
+                      setShowAuthFlow(true)
+                    }}
+                  >
+                    Log in or sign up
+                  </Button>
+                </div>
+              ) : step === 1 ? (
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="ipAddress" className="text-base">
+                    <Label htmlFor="ipAddress" className="text-base text-white">
                       IP Asset Address
                     </Label>
                     <Input
                       id="ipAddress"
                       placeholder="0x..."
-                      className="mt-2"
+                      className="mt-2 bg-gray-800 border-gray-800 text-white"
                       value={ipAddress}
                       onChange={(e) => setIpAddress(e.target.value)}
                     />
                     {ipAddress && !isValidEthereumAddress(ipAddress) && (
-                      <p className="mt-2 text-sm text-red-500">
+                      <p className="mt-2 text-sm text-red-400">
                         Please enter a valid Ethereum address
                       </p>
                     )}
                   </div>
                   <Button
-                    className="w-full"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
                     disabled={!ipAddress || !isValidEthereumAddress(ipAddress)}
                     onClick={handleNextStep}
                   >
@@ -111,34 +154,36 @@ export default function Home() {
               ) : step === 2 ? (
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="disabledIpAddress" className="text-base">
+                    <Label htmlFor="disabledIpAddress" className="text-base text-white">
                       IP Asset Address
                     </Label>
                     <Input
                       id="disabledIpAddress"
-                      className="mt-2 bg-gray-50 dark:bg-gray-800"
+                      className="mt-2 bg-gray-800 text-gray-300"
                       value={ipAddress}
                       disabled
                     />
                   </div>
 
                   <div>
-                    <Label className="text-base">Select Chain</Label>
+                    <Label className="text-base text-white">Select Chain</Label>
                     <div className="grid grid-cols-3 gap-4 mt-2">
                       {chains.map((chain) => (
                         <div
                           key={chain.id}
                           className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === chain.id
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
-                            : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
+                            ? "border-blue-500 bg-blue-900"
+                            : "border-gray-600 hover:border-blue-500"
                             }`}
                           onClick={() => setSelectedChain(chain.id)}
                         >
-                          <div className="h-8 w-8 mb-2 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                            {/* Placeholder for chain logos */}
-                            <span className="text-xs">
-                              {chain.name.charAt(0)}
-                            </span>
+                          <div className="h-8 w-8 mb-2 rounded-full overflow-hidden relative">
+                            <Image
+                              src={chain.logo}
+                              alt={chain.name}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
                           <span className="text-sm">{chain.name}</span>
                         </div>
@@ -147,7 +192,7 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <Label htmlFor="amount" className="text-base">
+                    <Label htmlFor="amount" className="text-base text-white">
                       Amount
                     </Label>
                     <div className="relative mt-2">
@@ -157,18 +202,18 @@ export default function Home() {
                         placeholder="0.0"
                         min="0"
                         step="0.01"
-                        className="pr-12"
+                        className="pr-12 bg-gray-800 border-gray-700 text-white"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300">
                         {selectedChain ? selectedChain.toUpperCase() : "ETH"}
                       </div>
                     </div>
                   </div>
 
                   <Button
-                    className="w-full"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
                     disabled={
                       !selectedChain || !amount || parseFloat(amount) <= 0
                     }
@@ -182,8 +227,8 @@ export default function Home() {
                   <div className="text-center">
                     <h3 className="text-xl font-semibold mb-6">
                       {tipStatus === "completed"
-                        ? "Tip Successfully Sent!"
-                        : "Processing Your Tip"}
+                        ? "Royalties Successfully Sent!"
+                        : "Processing Your Payment"}
                     </h3>
                   </div>
 
@@ -192,14 +237,14 @@ export default function Home() {
                       <span className="text-sm font-medium">
                         IP Asset Address:
                       </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[240px]">
+                      <span className="text-sm text-gray-300 truncate max-w-[240px]">
                         {ipAddress}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Chain:</span>
-                      <Badge variant="outline" className="capitalize">
+                      <Badge variant="outline" className="capitalize border-gray-600 text-gray-300">
                         {selectedChain}
                       </Badge>
                     </div>
@@ -213,14 +258,14 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="border-t border-b py-4 my-4 border-gray-100 dark:border-gray-800">
+                  <div className="border-t border-b py-4 my-4 border-gray-700">
                     <div className="space-y-4">
                       {processingSteps.map((step, index) => (
                         <div
                           key={index}
                           className={`flex items-center ${index <= currentProcessingStep
-                            ? "text-gray-900 dark:text-gray-100"
-                            : "text-gray-400 dark:text-gray-500"
+                            ? "text-white"
+                            : "text-gray-500"
                             }`}
                         >
                           {tipStatus === "completed" ? (
@@ -230,7 +275,7 @@ export default function Home() {
                           ) : index === currentProcessingStep ? (
                             <Loader2 className="h-5 w-5 text-blue-500 mr-3 animate-spin" />
                           ) : (
-                            <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-700 mr-3" />
+                            <div className="h-5 w-5 rounded-full border-2 border-gray-600 mr-3" />
                           )}
                           <span className="text-sm">{step}</span>
                         </div>
@@ -240,12 +285,12 @@ export default function Home() {
 
                   {tipStatus === "completed" && (
                     <div className="text-center">
-                      <p className="text-sm text-green-600 dark:text-green-400 mb-4">
-                        Your tip has been successfully processed and royalties
+                      <p className="text-sm text-green-400 mb-4">
+                        Your payment has been successfully processed and royalties
                         paid to the IP Asset Address
                       </p>
                       <Button
-                        className="mt-2"
+                        className="mt-2 bg-blue-600 hover:bg-blue-700"
                         onClick={() => {
                           setStep(1);
                           setIpAddress("");
