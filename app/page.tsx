@@ -15,10 +15,21 @@ import { Badge } from "@/components/ui/badge";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import Link from "next/link";
-import { arbitrum, avalanche, base, bsc, mainnet, polygon } from "viem/chains";
+import {
+  arbitrum,
+  avalanche,
+  base,
+  bsc,
+  mainnet,
+  polygon,
+  story,
+} from "viem/chains";
 import { formatAddress } from "@/lib/utils";
-import { createPublicClient, formatEther, Hex, http } from "viem";
-import { supportedChains } from "@/lib/constants";
+import { createPublicClient, formatEther, Hex, http, zeroAddress } from "viem";
+import { debridgeRoyaltyRelayer, supportedChains } from "@/lib/constants";
+import { toast } from "sonner";
+import getBridgeTxData from "@/lib/debridge";
+import { isEthereumWallet } from "@dynamic-labs/ethereum";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -88,36 +99,152 @@ export default function Home() {
     }
   }, [primaryWallet]);
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
+    if (!primaryWallet || !isEthereumWallet(primaryWallet)) {
+      toast.error("Wallet not connected", {
+        description: "Please connect your wallet to continue",
+      });
+      return;
+    }
+
     console.log(step, ipAddress, selectedChain, amount);
     if (step === 1 && ipAddress) {
       setStep(2);
     } else if (step === 2 && amount) {
       setStep(3);
-      // Simulate processing
-      simulateProcessing();
+      setTipStatus("processing");
+      setCurrentProcessingStep(0);
+
+      const { to, data, value, error } = await getBridgeTxData({
+        senderAddress: primaryWallet?.address as Hex,
+        receiverIpId: ipAddress as Hex,
+        payerIpId: zeroAddress,
+        amount,
+        srcChainId: chains[selectedChain].id,
+      });
+      if (error) {
+        toast.error("Tx Estimation Error", {
+          description: error,
+        });
+        return;
+      }
+      const publicClient = await primaryWallet.getPublicClient();
+      const walletClient = await primaryWallet.getWalletClient();
+      const hash = await walletClient.sendTransaction({
+        to,
+        data,
+        value,
+      });
+      setCurrentProcessingStep(1);
+      console.log("Source Tx:", hash);
+
+      await publicClient.waitForTransactionReceipt({
+        hash,
+      });
+      setCurrentProcessingStep(2);
+      setSourceTx(hash);
+      listenForRoyaltySettledEvent();
     }
   };
 
-  const simulateProcessing = () => {
-    setTipStatus("processing");
-    setCurrentProcessingStep(0);
+  const listenForRoyaltySettledEvent = async () => {
+    try {
+      const storyChainClient = createPublicClient({
+        chain: story,
+        transport: http(),
+      });
 
-    // // Simulate the steps with timeouts
-    // const stepTimes = [2000, 3000, 2500, 1500];
+      console.log(
+        `Listening for RoyaltySettled events for receiver: ${ipAddress}`
+      );
 
-    // let cumulativeTime = 0;
-    // processingSteps.forEach((_, index) => {
-    //   cumulativeTime += stepTimes[index];
-    //   setTimeout(() => {
-    //     setCurrentProcessingStep(index);
-    //   }, cumulativeTime);
-    // });
+      const unwatch = storyChainClient.watchEvent({
+        address: debridgeRoyaltyRelayer,
+        event: {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "receiverIpId",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "payerIpId",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "RoyaltySettled",
+          type: "event",
+        },
+        onLogs: (logs) => {
+          for (const log of logs) {
+            const { receiverIpId, payerIpId, amount } = log.args;
 
-    // // Complete the process after all steps
-    // setTimeout(() => {
-    //   setTipStatus("completed");
-    // }, cumulativeTime + 1000);
+            console.log("RoyaltySettled event detected:", {
+              receiverIpId,
+              payerIpId,
+              amount,
+            });
+
+            if (receiverIpId?.toLowerCase() === ipAddress.toLowerCase()) {
+              console.log(
+                "✅ Match found! RoyaltySettled for the correct receiver",
+                {
+                  receiverIpId,
+                  payerIpId,
+                  amount: amount ? formatEther(amount) : "0",
+                }
+              );
+
+              setCurrentProcessingStep(4);
+              setTipStatus("success");
+              setDestTx(log.transactionHash);
+
+              unwatch();
+              return;
+            }
+          }
+        },
+        onError: (error) => {
+          console.error(
+            "Error while listening for RoyaltySettled events:",
+            error
+          );
+          toast.error("Event Listening Error", {
+            description: "Failed to detect the completion of your transaction.",
+          });
+          unwatch();
+        },
+      });
+
+      // Set a timeout for the event listening (e.g., 5 minutes)
+      setTimeout(() => {
+        console.log("Event listening timeout reached");
+        unwatch();
+
+        // Check if we're still in the processing state
+        if (tipStatus === "processing") {
+          toast.warning("Transaction Status Unknown", {
+            description:
+              "We couldn't confirm if your transaction was completed on the destination chain. Please check manually.",
+          });
+        }
+      }, 5 * 60 * 1000); // 5 minutes timeout
+    } catch (error) {
+      console.error("Failed to set up event listener:", error);
+      toast.error("Setup Error", {
+        description: "Failed to set up event monitoring for your transaction.",
+      });
+    }
   };
 
   const isValidEthereumAddress = (address: string) => {
