@@ -25,7 +25,14 @@ import {
   story,
 } from "viem/chains";
 import { formatAddress } from "@/lib/utils";
-import { createPublicClient, formatEther, Hex, http, zeroAddress } from "viem";
+import {
+  createPublicClient,
+  formatEther,
+  Hex,
+  http,
+  parseEther,
+  zeroAddress,
+} from "viem";
 import { debridgeRoyaltyRelayer, supportedChains } from "@/lib/constants";
 import { toast } from "sonner";
 import getBridgeTxData from "@/lib/debridge";
@@ -119,31 +126,46 @@ export default function Home() {
         senderAddress: primaryWallet?.address as Hex,
         receiverIpId: ipAddress as Hex,
         payerIpId: zeroAddress,
-        amount,
+        amount: parseEther(amount).toString(),
         srcChainId: chains[selectedChain].id,
       });
       if (error) {
         toast.error("Tx Estimation Error", {
           description: error,
         });
+        setTipStatus("idle");
+        setCurrentProcessingStep(0);
+        setStep(2);
+        setAmount("");
         return;
       }
-      const publicClient = await primaryWallet.getPublicClient();
-      const walletClient = await primaryWallet.getWalletClient();
-      const hash = await walletClient.sendTransaction({
-        to,
-        data,
-        value,
-      });
-      setCurrentProcessingStep(1);
-      console.log("Source Tx:", hash);
+      try {
+        const publicClient = await primaryWallet.getPublicClient();
+        const walletClient = await primaryWallet.getWalletClient();
+        const hash = await walletClient.sendTransaction({
+          to,
+          data,
+          value,
+        });
+        setCurrentProcessingStep(1);
+        console.log("Source Tx:", hash);
 
-      await publicClient.waitForTransactionReceipt({
-        hash,
-      });
-      setCurrentProcessingStep(2);
-      setSourceTx(hash);
-      listenForRoyaltySettledEvent();
+        await publicClient.waitForTransactionReceipt({
+          hash,
+        });
+        setCurrentProcessingStep(2);
+        setSourceTx(hash);
+        listenForRoyaltySettledEvent();
+      } catch (e) {
+        console.error(e);
+        toast.error("Transaction Error", {
+          description: "Failed to initiate the transaction",
+        });
+        setTipStatus("idle");
+        setCurrentProcessingStep(0);
+        setStep(2);
+        setAmount("");
+      }
     }
   };
 
