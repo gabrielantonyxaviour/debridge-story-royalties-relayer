@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { arbitrum, avalanche, base, bsc, mainnet, polygon } from "viem/chains";
 import { formatAddress } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -20,6 +21,7 @@ export default function Home() {
   const [tipStatus, setTipStatus] = useState("idle"); // idle, processing, completed
   const [currentProcessingStep, setCurrentProcessingStep] = useState(0);
   const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
+  const { theme } = useTheme();
 
   const chains = [
     { id: mainnet.id, name: "Ethereum", logo: "/eth.png", currency: "ETH" },
@@ -44,11 +46,11 @@ export default function Home() {
     }
   }, [primaryWallet])
 
-
   const handleNextStep = () => {
+    console.log(step, ipAddress, selectedChain, amount);
     if (step === 1 && ipAddress) {
       setStep(2);
-    } else if (step === 2 && selectedChain && amount) {
+    } else if (step === 2 && amount) {
       setStep(3);
       // Simulate processing
       simulateProcessing();
@@ -59,21 +61,21 @@ export default function Home() {
     setTipStatus("processing");
     setCurrentProcessingStep(0);
 
-    // Simulate the steps with timeouts
-    const stepTimes = [2000, 3000, 2500, 1500];
+    // // Simulate the steps with timeouts
+    // const stepTimes = [2000, 3000, 2500, 1500];
 
-    let cumulativeTime = 0;
-    processingSteps.forEach((_, index) => {
-      cumulativeTime += stepTimes[index];
-      setTimeout(() => {
-        setCurrentProcessingStep(index);
-      }, cumulativeTime);
-    });
+    // let cumulativeTime = 0;
+    // processingSteps.forEach((_, index) => {
+    //   cumulativeTime += stepTimes[index];
+    //   setTimeout(() => {
+    //     setCurrentProcessingStep(index);
+    //   }, cumulativeTime);
+    // });
 
-    // Complete the process after all steps
-    setTimeout(() => {
-      setTipStatus("completed");
-    }, cumulativeTime + 1000);
+    // // Complete the process after all steps
+    // setTimeout(() => {
+    //   setTipStatus("completed");
+    // }, cumulativeTime + 1000);
   };
 
   const isValidEthereumAddress = (address: string) => {
@@ -83,7 +85,7 @@ export default function Home() {
   const isWalletConnected = !!primaryWallet && !!user;
 
   return (
-    <div className="w-full min-h-screen bg-black text-white">
+    <div className="w-full min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-xl mx-auto">
           <div className="flex justify-center items-center gap-2 mr-4 mb-3">
@@ -105,28 +107,28 @@ export default function Home() {
             </Link>
           </div>
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-black dark:text-white">
               deBridge x Story
             </h1>
-            <p className="mt-3 text-gray-300">
-              Tip creators directly with cross-chain compatibility
+            <p className="mt-3 text-stone-600 dark:text-gray-300">
+              Tip creators on any EVM chain with deBridge
             </p>
           </div>
 
-          <Card className="border-none shadow-lg bg- text-white">
+          <Card className="border-none shadow-lg bg-white dark:bg-transparent text-black dark:text-white">
             <CardContent className="pt-6">
               {!isWalletConnected ? (
                 <div className="space-y-6 py-8 text-center">
                   <div className="flex justify-center mb-4">
-                    <Wallet className="h-16 w-16 text-blue-400" />
+                    <Wallet className="h-16 w-16 text-blue-500 dark:text-blue-400" />
                   </div>
                   <h3 className="text-xl font-semibold">Connect Your Wallet</h3>
-                  <p className="text-gray-300">
+                  <p className="text-gray-600 dark:text-gray-300">
                     Please connect your wallet to continue with tipping IP Asset creators
                   </p>
                   {/* This button will trigger Dynamic wallet connect modal */}
                   <Button
-                    className="w-full bg-stone-900 hover:bg-stone-800 text-white"
+                    className="w-full bg-stone-200 hover:bg-stone-300 dark:bg-stone-900 dark:hover:bg-stone-800 text-black dark:text-white"
                     onClick={() => {
                       setShowAuthFlow(true)
                     }}
@@ -137,24 +139,24 @@ export default function Home() {
               ) : step === 1 ? (
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="ipAddress" className="text-base text-white">
+                    <Label htmlFor="ipAddress" className="text-base">
                       IP Asset Address
                     </Label>
                     <Input
                       id="ipAddress"
                       placeholder="0x..."
-                      className="mt-2 bg-gray-800 border-gray-800 text-white"
+                      className="mt-2 bg-stone-100 dark:bg-gray-800 border-stone-300 dark:border-gray-800 text-black dark:text-white"
                       value={ipAddress}
                       onChange={(e) => setIpAddress(e.target.value)}
                     />
                     {ipAddress && !isValidEthereumAddress(ipAddress) && (
-                      <p className="mt-2 text-sm text-red-400">
+                      <p className="mt-2 text-sm text-red-500 dark:text-red-400">
                         Please enter a valid Ethereum address
                       </p>
                     )}
                   </div>
                   <Button
-                    className="w-full bg-stone-600 hover:bg-stone-700 text-white font-semibold"
+                    className="w-full bg-stone-600 hover:bg-stone-700 dark:bg-stone-600 dark:hover:bg-stone-700 text-white font-semibold"
                     disabled={!ipAddress || !isValidEthereumAddress(ipAddress)}
                     onClick={handleNextStep}
                   >
@@ -164,26 +166,26 @@ export default function Home() {
               ) : step === 2 ? (
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="disabledIpAddress" className="text-base text-white">
+                    <Label htmlFor="disabledIpAddress" className="text-base">
                       IP Asset Address
                     </Label>
                     <Input
                       id="disabledIpAddress"
-                      className="mt-2 bg-gray-800 text-gray-300"
+                      className="mt-2 bg-stone-100 dark:bg-gray-800 text-stone-600 dark:text-gray-300"
                       value={ipAddress}
                       disabled
                     />
                   </div>
 
                   <div>
-                    <Label className="text-base text-white">Select Chain</Label>
+                    <Label className="text-base">Select Chain</Label>
                     <div className="grid grid-cols-3 gap-4 mt-2">
                       {chains.map((chain, idx) => (
                         <div
                           key={chain.id}
                           className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === idx
-                            ? "border-stone-500 bg-stone-900"
-                            : "border-gray-600 hover:border-stone-500"
+                            ? "border-stone-500 bg-stone-100 dark:bg-stone-900"
+                            : "border-stone-300 dark:border-gray-600 hover:border-stone-500 dark:hover:border-stone-500"
                             }`}
                           onClick={async () => {
                             if (primaryWallet?.connector.supportsNetworkSwitching()) {
@@ -207,7 +209,7 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <Label htmlFor="amount" className="text-base text-white">
+                    <Label htmlFor="amount" className="text-base">
                       Amount
                     </Label>
                     <div className="relative mt-2">
@@ -217,18 +219,18 @@ export default function Home() {
                         placeholder="0.0"
                         min="0"
                         step="0.01"
-                        className="pr-12 bg-gray-800 border-gray-700 text-white"
+                        className="pr-12 bg-stone-100 dark:bg-transparent border-stone-300 dark:border-gray-700 text-black dark:text-white"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300">
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-stone-500 dark:text-gray-300">
                         {selectedChain ? chains[selectedChain].currency : "ETH"}
                       </div>
                     </div>
                   </div>
 
                   <Button
-                    className="w-full bg-stone-600 hover:bg-stone-700 text-white"
+                    className="w-full bg-stone-600 hover:bg-stone-700 dark:bg-stone-600 dark:hover:bg-stone-700 text-white"
                     disabled={
                       !amount || parseFloat(amount) <= 0
                     }
@@ -252,14 +254,14 @@ export default function Home() {
                       <span className="text-sm font-medium">
                         IP Asset Address:
                       </span>
-                      <span className="text-sm text-gray-300 truncate max-w-[240px]">
+                      <span className="text-sm text-stone-600 dark:text-gray-300 truncate max-w-[240px]">
                         {formatAddress(ipAddress)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Chain:</span>
-                      <Badge variant="outline" className="capitalize border-gray-600 text-gray-300">
+                      <Badge variant="outline" className="capitalize border-stone-300 dark:border-gray-600 text-stone-600 dark:text-gray-300">
                         {chains[selectedChain].name}
                       </Badge>
                     </div>
@@ -273,24 +275,24 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="border-t border-b py-4 my-4 border-gray-700">
+                  <div className="border-t border-b py-4 my-4 border-stone-200 dark:border-gray-700">
                     <div className="space-y-4">
                       {processingSteps.map((step, index) => (
                         <div
                           key={index}
                           className={`flex items-center ${index <= currentProcessingStep
-                            ? "text-white"
-                            : "text-gray-500"
+                            ? "text-black dark:text-white"
+                            : "text-stone-400 dark:text-gray-500"
                             }`}
                         >
                           {tipStatus === "completed" ? (
-                            <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500 mr-3" />
                           ) : index < currentProcessingStep ? (
-                            <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500 mr-3" />
                           ) : index === currentProcessingStep ? (
-                            <Loader2 className="h-5 w-5 text-blue-500 mr-3 animate-spin" />
+                            <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-500 mr-3 animate-spin" />
                           ) : (
-                            <div className="h-5 w-5 rounded-full border-2 border-gray-600 mr-3" />
+                            <div className="h-5 w-5 rounded-full border-2 border-stone-300 dark:border-gray-600 mr-3" />
                           )}
                           <span className="text-sm">{step + ((index == 0 || index == 1) ? chains[selectedChain].name : "")}</span>
                         </div>
@@ -300,18 +302,19 @@ export default function Home() {
 
                   {tipStatus === "completed" && (
                     <div className="text-center">
-                      <p className="text-sm text-green-400 mb-4">
+                      <p className="text-sm text-green-600 dark:text-green-400 mb-4">
                         Your payment has been successfully processed and royalties
                         paid to the IP Asset Address
                       </p>
                       <Button
-                        className="mt-2 bg-stone-600 hover:bg-stone-700 text-white font-semibold"
+                        className="mt-2 bg-stone-600 hover:bg-stone-700 dark:bg-stone-600 dark:hover:bg-stone-700 text-white font-semibold"
                         onClick={() => {
                           setStep(1);
                           setIpAddress("");
                           setSelectedChain(0);
                           setAmount("");
                           setTipStatus("idle");
+                          setCurrentProcessingStep(0);
                         }}
                       >
                         Tip Another Creator
