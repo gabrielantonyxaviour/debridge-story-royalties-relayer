@@ -503,21 +503,26 @@ export default function Home() {
                                 ? chains[selectedChain].name
                                 : "")}
                           </span>
-                          {(sourceTx != "" && index == 0) ||
-                            (destTx != "" && index == 4 && (
-                              <div
-                                onClick={() => {
-                                  window.open(
-                                    "https://etherscan.io/tx/",
-                                    "_blank"
-                                  );
-                                }}
-                                className="flex-1 flex justify-end items-center text-xs space-x-1 cursor-pointer hover:font-semibold"
-                              >
-                                <p>View Tx</p>{" "}
-                                <ArrowUpRightFromSquare className="w-3 h-3" />{" "}
-                              </div>
-                            ))}
+                          {((sourceTx != "" && index == 0) ||
+                            (destTx != "" && index == 4)) && (
+                            <div
+                              onClick={() => {
+                                window.open(
+                                  index == 0
+                                    ? supportedChains[selectedChain]
+                                        .blockExplorers?.default.url +
+                                        "/tx/" +
+                                        sourceTx
+                                    : "http://storyscan.xyz/tx/" + destTx,
+                                  "_blank"
+                                );
+                              }}
+                              className="flex-1 flex justify-end items-center text-xs space-x-1 cursor-pointer hover:font-semibold"
+                            >
+                              <p>View Tx</p>{" "}
+                              <ArrowUpRightFromSquare className="w-3 h-3" />{" "}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
