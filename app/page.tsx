@@ -20,12 +20,12 @@ export default function Home() {
   const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
 
   const chains = [
-    { id: "ethereum", name: "Ethereum", logo: "/eth.png" },
-    { id: "base", name: "Base", logo: "/base.jpeg" },
-    { id: "polygon", name: "Polygon", logo: "/polygon.jpeg" },
-    { id: "bnb", name: "BNB", logo: "/bnb.png" },
-    { id: "arbitrum", name: "Arbitrum", logo: "/arbitrum.png" },
-    { id: "avalanche", name: "Avalanche", logo: "/avax.png" },
+    { id: "ethereum", name: "Ethereum", logo: "/eth.png", currency: "ETH" },
+    { id: "base", name: "Base", logo: "/base.jpeg", currency: "ETH" },
+    { id: "polygon", name: "Polygon", logo: "/polygon.jpeg", currency: "POL" },
+    { id: "bnb", name: "BNB", logo: "/bnb.png", currency: "BNB" },
+    { id: "arbitrum", name: "Arbitrum", logo: "/arbitrum.png", currency: "ETH" },
+    { id: "avalanche", name: "Avalanche", logo: "/avax.png", currency: "AVAX" },
   ];
 
   const processingSteps = [
@@ -144,7 +144,7 @@ export default function Home() {
                     )}
                   </div>
                   <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-stone-600 hover:bg-stone-700 text-white font-semibold"
                     disabled={!ipAddress || !isValidEthereumAddress(ipAddress)}
                     onClick={handleNextStep}
                   >
@@ -172,10 +172,10 @@ export default function Home() {
                         <div
                           key={chain.id}
                           className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === chain.id
-                            ? "border-blue-500 bg-blue-900"
-                            : "border-gray-600 hover:border-blue-500"
+                            ? "border-stone-500 bg-stone-900"
+                            : "border-gray-600 hover:border-stone-500"
                             }`}
-                          onClick={() => setSelectedChain(chain.id)}
+                          onClick={() => setSelectedChain(chain.currency)}
                         >
                           <div className="h-8 w-8 mb-2 rounded-full overflow-hidden relative">
                             <Image
@@ -213,7 +213,7 @@ export default function Home() {
                   </div>
 
                   <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-stone-600 hover:bg-stone-700 text-white"
                     disabled={
                       !selectedChain || !amount || parseFloat(amount) <= 0
                     }
@@ -290,7 +290,7 @@ export default function Home() {
                         paid to the IP Asset Address
                       </p>
                       <Button
-                        className="mt-2 bg-blue-600 hover:bg-blue-700"
+                        className="mt-2 bg-stone-600 hover:bg-stone-700"
                         onClick={() => {
                           setStep(1);
                           setIpAddress("");
