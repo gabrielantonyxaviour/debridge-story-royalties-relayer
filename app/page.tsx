@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,31 +9,41 @@ import { Badge } from "@/components/ui/badge";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import Link from "next/link";
+import { arbitrum, avalanche, base, bsc, mainnet, polygon } from "viem/chains";
+import { formatAddress } from "@/lib/utils";
 
 export default function Home() {
   const [step, setStep] = useState(1);
-  const [ipAddress, setIpAddress] = useState("");
-  const [selectedChain, setSelectedChain] = useState("");
+  const [ipAddress, setIpAddress] = useState("0x8F7a0fe18D747399E623ca0F92Bd0159148c5776");
+  const [selectedChain, setSelectedChain] = useState(0);
   const [amount, setAmount] = useState("");
   const [tipStatus, setTipStatus] = useState("idle"); // idle, processing, completed
   const [currentProcessingStep, setCurrentProcessingStep] = useState(0);
   const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
 
   const chains = [
-    { id: "ethereum", name: "Ethereum", logo: "/eth.png", currency: "ETH" },
-    { id: "base", name: "Base", logo: "/base.jpeg", currency: "ETH" },
-    { id: "polygon", name: "Polygon", logo: "/polygon.jpeg", currency: "POL" },
-    { id: "bnb", name: "BNB", logo: "/bnb.png", currency: "BNB" },
-    { id: "arbitrum", name: "Arbitrum", logo: "/arbitrum.png", currency: "ETH" },
-    { id: "avalanche", name: "Avalanche", logo: "/avax.png", currency: "AVAX" },
+    { id: mainnet.id, name: "Ethereum", logo: "/eth.png", currency: "ETH" },
+    { id: base.id, name: "Base", logo: "/base.jpeg", currency: "ETH" },
+    { id: polygon.id, name: "Polygon", logo: "/polygon.jpeg", currency: "POL" },
+    { id: bsc.id, name: "BNB", logo: "/bnb.png", currency: "BNB" },
+    { id: arbitrum.id, name: "Arbitrum", logo: "/arbitrum.png", currency: "ETH" },
+    { id: avalanche.id, name: "Avalanche", logo: "/avax.png", currency: "AVAX" },
   ];
 
   const processingSteps = [
-    "Initiating transaction on selected chain",
-    "Bridging funds to Story chain",
-    "Processing royalty payment to IP address",
-    "Finalizing transaction",
+    "Initiating transaction on ",
+    "Waiting for confirmation on ",
+    "Bridging royalties to Story",
+    "Waiting for confirmation on Story",
+    "Royalties successfully bridged to the IPA",
   ];
+
+  useEffect(() => {
+    if (primaryWallet && primaryWallet.connector.supportsNetworkSwitching()) {
+      primaryWallet.switchNetwork(mainnet.id);
+    }
+  }, [primaryWallet])
+
 
   const handleNextStep = () => {
     if (step === 1 && ipAddress) {
@@ -168,14 +178,19 @@ export default function Home() {
                   <div>
                     <Label className="text-base text-white">Select Chain</Label>
                     <div className="grid grid-cols-3 gap-4 mt-2">
-                      {chains.map((chain) => (
+                      {chains.map((chain, idx) => (
                         <div
                           key={chain.id}
-                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === chain.id
+                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === idx
                             ? "border-stone-500 bg-stone-900"
                             : "border-gray-600 hover:border-stone-500"
                             }`}
-                          onClick={() => setSelectedChain(chain.currency)}
+                          onClick={async () => {
+                            if (primaryWallet?.connector.supportsNetworkSwitching()) {
+                              await primaryWallet.switchNetwork(chain.id);
+                              setSelectedChain(idx)
+                            }
+                          }}
                         >
                           <div className="h-8 w-8 mb-2 rounded-full overflow-hidden relative">
                             <Image
@@ -207,7 +222,7 @@ export default function Home() {
                         onChange={(e) => setAmount(e.target.value)}
                       />
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300">
-                        {selectedChain ? selectedChain.toUpperCase() : "ETH"}
+                        {selectedChain ? chains[selectedChain].currency : "ETH"}
                       </div>
                     </div>
                   </div>
@@ -215,7 +230,7 @@ export default function Home() {
                   <Button
                     className="w-full bg-stone-600 hover:bg-stone-700 text-white"
                     disabled={
-                      !selectedChain || !amount || parseFloat(amount) <= 0
+                      !amount || parseFloat(amount) <= 0
                     }
                     onClick={handleNextStep}
                   >
@@ -238,14 +253,14 @@ export default function Home() {
                         IP Asset Address:
                       </span>
                       <span className="text-sm text-gray-300 truncate max-w-[240px]">
-                        {ipAddress}
+                        {formatAddress(ipAddress)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Chain:</span>
                       <Badge variant="outline" className="capitalize border-gray-600 text-gray-300">
-                        {selectedChain}
+                        {chains[selectedChain].name}
                       </Badge>
                     </div>
 
@@ -253,7 +268,7 @@ export default function Home() {
                       <span className="text-sm font-medium">Amount:</span>
                       <span className="text-sm">
                         {amount}{" "}
-                        {selectedChain ? selectedChain.toUpperCase() : "ETH"}
+                        {selectedChain ? chains[selectedChain].currency : "ETH"}
                       </span>
                     </div>
                   </div>
@@ -277,7 +292,7 @@ export default function Home() {
                           ) : (
                             <div className="h-5 w-5 rounded-full border-2 border-gray-600 mr-3" />
                           )}
-                          <span className="text-sm">{step}</span>
+                          <span className="text-sm">{step + ((index == 0 || index == 1) ? chains[selectedChain].name : "")}</span>
                         </div>
                       ))}
                     </div>
@@ -290,11 +305,11 @@ export default function Home() {
                         paid to the IP Asset Address
                       </p>
                       <Button
-                        className="mt-2 bg-stone-600 hover:bg-stone-700"
+                        className="mt-2 bg-stone-600 hover:bg-stone-700 text-white font-semibold"
                         onClick={() => {
                           setStep(1);
                           setIpAddress("");
-                          setSelectedChain("");
+                          setSelectedChain(0);
                           setAmount("");
                           setTipStatus("idle");
                         }}
