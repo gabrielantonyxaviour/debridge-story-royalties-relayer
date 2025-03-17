@@ -17,7 +17,7 @@ const supportedChains: Record<number, Chain> = {
   [polygon.id]: polygon,
 };
 
-const debridgeRoyaltyRelayer = "0xa4b83a29904e61A50C5fE5eCA42a61A23CFa36e1";
+const debridgeRoyaltyRelayer = "0x5A61F881a94B41905B899243aB204e281D149FCc";
 const debridgeRoyaltyRelayerAbi = [
   {
     anonymous: false,
@@ -59,6 +59,12 @@ const debridgeRoyaltyRelayerAbi = [
         name: "amount",
         type: "uint256",
       },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "uniqueSalt",
+        type: "bytes32",
+      },
     ],
     name: "RoyaltySettled",
     type: "event",
@@ -93,6 +99,7 @@ const debridgeRoyaltyRelayerAbi = [
   },
   {
     inputs: [
+      { internalType: "bytes32", name: "uniqueSalt", type: "bytes32" },
       { internalType: "address", name: "receiverIpId", type: "address" },
       { internalType: "address", name: "payerIpId", type: "address" },
     ],

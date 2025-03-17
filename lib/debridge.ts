@@ -1,12 +1,14 @@
 import { encodeFunctionData, Hex } from "viem";
 import { debridgeRoyaltyRelayer, debridgeRoyaltyRelayerAbi } from "./constants";
 export default async function getBridgeTxData({
+  randomSalt,
   senderAddress,
   receiverIpId,
   payerIpId,
   amount,
   srcChainId,
 }: {
+  randomSalt: Hex;
   senderAddress: Hex;
   receiverIpId: Hex;
   payerIpId: Hex;
@@ -21,7 +23,7 @@ export default async function getBridgeTxData({
   const settleRoyaltiesTxData = encodeFunctionData({
     abi: debridgeRoyaltyRelayerAbi,
     functionName: "settleRoyalties",
-    args: [receiverIpId, payerIpId],
+    args: [randomSalt, receiverIpId, payerIpId],
   });
   console.log(settleRoyaltiesTxData);
 

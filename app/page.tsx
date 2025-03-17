@@ -32,7 +32,9 @@ import {
   http,
   parseEther,
   zeroAddress,
+  bytesToHex,
 } from "viem";
+import { randomBytes } from "crypto";
 import { debridgeRoyaltyRelayer, supportedChains } from "@/lib/constants";
 import { toast } from "sonner";
 import getBridgeTxData from "@/lib/debridge";
@@ -52,6 +54,7 @@ export default function Home() {
   const [destTx, setDestTx] = useState("");
   const [userBalance, setUserBalance] = useState("0");
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [randomSalt, setRandomSalt] = useState(bytesToHex(randomBytes(32)));
 
   const chains = [
     { id: mainnet.id, name: "Ethereum", logo: "/eth.png", currency: "ETH" },
@@ -93,10 +96,10 @@ export default function Home() {
   }, [selectedChain, primaryWallet, user]);
 
   const processingSteps = [
+    "Preparing Transaction",
     "Initiating transaction on ",
     "Waiting for confirmation on ",
     "Bridging royalties to Story",
-    "Waiting for confirmation on Story",
     "Royalties successfully bridged to the IPA",
   ];
 
@@ -123,12 +126,14 @@ export default function Home() {
       setCurrentProcessingStep(0);
 
       const { to, data, value, error } = await getBridgeTxData({
+        randomSalt: randomSalt,
         senderAddress: primaryWallet?.address as Hex,
         receiverIpId: ipAddress as Hex,
         payerIpId: zeroAddress,
         amount: parseEther(amount).toString(),
         srcChainId: chains[selectedChain].id,
       });
+      setCurrentProcessingStep(1);
       if (error) {
         toast.error("Tx Estimation Error", {
           description: error,
@@ -137,6 +142,7 @@ export default function Home() {
         setCurrentProcessingStep(0);
         setStep(2);
         setAmount("");
+        setRandomSalt(bytesToHex(randomBytes(32)));
         return;
       }
       try {
@@ -147,13 +153,13 @@ export default function Home() {
           data,
           value,
         });
-        setCurrentProcessingStep(1);
+        setCurrentProcessingStep(2);
         console.log("Source Tx:", hash);
 
         await publicClient.waitForTransactionReceipt({
           hash,
         });
-        setCurrentProcessingStep(2);
+        setCurrentProcessingStep(3);
         setSourceTx(hash);
         listenForRoyaltySettledEvent();
       } catch (e) {
@@ -164,6 +170,7 @@ export default function Home() {
         setTipStatus("idle");
         setCurrentProcessingStep(0);
         setStep(2);
+        setRandomSalt(bytesToHex(randomBytes(32)));
         setAmount("");
       }
     }
@@ -173,11 +180,11 @@ export default function Home() {
     try {
       const storyChainClient = createPublicClient({
         chain: story,
-        transport: http(),
+        transport: http("https://rpc.ankr.com/story_mainnet"),
       });
 
       console.log(
-        `Listening for RoyaltySettled events for receiver: ${ipAddress}`
+        `Listening for RoyaltySettled events with salt: ${randomSalt}`
       );
 
       const unwatch = storyChainClient.watchEvent({
@@ -203,13 +210,19 @@ export default function Home() {
               name: "amount",
               type: "uint256",
             },
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "uniqueSalt",
+              type: "bytes32",
+            },
           ],
           name: "RoyaltySettled",
           type: "event",
         },
         onLogs: (logs) => {
           for (const log of logs) {
-            const { receiverIpId, payerIpId, amount } = log.args;
+            const { receiverIpId, payerIpId, amount, uniqueSalt } = log.args;
 
             console.log("RoyaltySettled event detected:", {
               receiverIpId,
@@ -217,9 +230,9 @@ export default function Home() {
               amount,
             });
 
-            if (receiverIpId?.toLowerCase() === ipAddress.toLowerCase()) {
+            if (uniqueSalt?.toLowerCase() === randomSalt.toLowerCase()) {
               console.log(
-                "✅ Match found! RoyaltySettled for the correct receiver",
+                "✅ Match found! RoyaltySettled for the correct unique salt",
                 {
                   receiverIpId,
                   payerIpId,
@@ -228,7 +241,7 @@ export default function Home() {
               );
 
               setCurrentProcessingStep(4);
-              setTipStatus("success");
+              setTipStatus("completed");
               setDestTx(log.transactionHash);
 
               unwatch();
@@ -510,9 +523,8 @@ export default function Home() {
                               : "text-stone-400 dark:text-gray-500"
                           }`}
                         >
-                          {tipStatus === "completed" ? (
-                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500 mr-3" />
-                          ) : index < currentProcessingStep ? (
+                          {tipStatus === "completed" ||
+                          index < currentProcessingStep ? (
                             <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500 mr-3" />
                           ) : index === currentProcessingStep ? (
                             <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-500 mr-3 animate-spin" />
@@ -521,16 +533,16 @@ export default function Home() {
                           )}
                           <span className="text-sm">
                             {step +
-                              (index == 0 || index == 1
+                              (index == 2 || index == 1
                                 ? chains[selectedChain].name
                                 : "")}
                           </span>
-                          {((sourceTx != "" && index == 0) ||
+                          {((sourceTx != "" && index == 1) ||
                             (destTx != "" && index == 4)) && (
                             <div
                               onClick={() => {
                                 window.open(
-                                  index == 0
+                                  index == 1
                                     ? supportedChains[selectedChain]
                                         .blockExplorers?.default.url +
                                         "/tx/" +
