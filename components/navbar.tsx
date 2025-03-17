@@ -16,7 +16,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 mr-4">
           <Link href="/" className="flex items-center gap-3">
             <Image
-              src="/debridge.png"
+              src="/debridge.jpeg"
               alt="Debridge Logo"
               width={32}
               height={32}

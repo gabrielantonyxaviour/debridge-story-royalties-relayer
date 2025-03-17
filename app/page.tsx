@@ -16,12 +16,12 @@ export default function Home() {
   const [currentProcessingStep, setCurrentProcessingStep] = useState(0);
 
   const chains = [
-    { id: "ethereum", name: "Ethereum", logo: "ethereum.svg" },
-    { id: "base", name: "Base", logo: "base.svg" },
-    { id: "polygon", name: "Polygon", logo: "polygon.svg" },
-    { id: "bnb", name: "BNB", logo: "bnb.svg" },
-    { id: "arbitrum", name: "Arbitrum", logo: "arbitrum.svg" },
-    { id: "avalanche", name: "Avalanche", logo: "avalanche.svg" },
+    { id: "ethereum", name: "Ethereum", logo: "/eth.png" },
+    { id: "base", name: "Base", logo: "/base.jpeg" },
+    { id: "polygon", name: "Polygon", logo: "/polygon.jpeg" },
+    { id: "bnb", name: "BNB", logo: "/bnb.png" },
+    { id: "arbitrum", name: "Arbitrum", logo: "/arbitrum.png" },
+    { id: "avalanche", name: "Avalanche", logo: "/avax.png" },
   ];
 
   const processingSteps = [
@@ -128,11 +128,10 @@ export default function Home() {
                       {chains.map((chain) => (
                         <div
                           key={chain.id}
-                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${
-                            selectedChain === chain.id
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
-                              : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
-                          }`}
+                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === chain.id
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
+                            : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
+                            }`}
                           onClick={() => setSelectedChain(chain.id)}
                         >
                           <div className="h-8 w-8 mb-2 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
@@ -175,7 +174,7 @@ export default function Home() {
                     }
                     onClick={handleNextStep}
                   >
-                    Send Tip <ChevronRight className="ml-2 h-4 w-4" />
+                    Send Royalties <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               ) : (
@@ -219,11 +218,10 @@ export default function Home() {
                       {processingSteps.map((step, index) => (
                         <div
                           key={index}
-                          className={`flex items-center ${
-                            index <= currentProcessingStep
-                              ? "text-gray-900 dark:text-gray-100"
-                              : "text-gray-400 dark:text-gray-500"
-                          }`}
+                          className={`flex items-center ${index <= currentProcessingStep
+                            ? "text-gray-900 dark:text-gray-100"
+                            : "text-gray-400 dark:text-gray-500"
+                            }`}
                         >
                           {tipStatus === "completed" ? (
                             <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
