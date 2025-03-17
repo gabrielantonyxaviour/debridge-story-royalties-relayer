@@ -4,19 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowUpRightFromSquare, CheckCircle, ChevronRight, Loader2, Wallet } from "lucide-react";
+import {
+  ArrowUpRightFromSquare,
+  CheckCircle,
+  ChevronRight,
+  Loader2,
+  Wallet,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import Link from "next/link";
 import { arbitrum, avalanche, base, bsc, mainnet, polygon } from "viem/chains";
 import { formatAddress } from "@/lib/utils";
-import { createPublicClient, formatEther, http } from "viem";
+import { createPublicClient, formatEther, Hex, http } from "viem";
 import { supportedChains } from "@/lib/constants";
 
 export default function Home() {
   const [step, setStep] = useState(1);
-  const [ipAddress, setIpAddress] = useState("0x8F7a0fe18D747399E623ca0F92Bd0159148c5776");
+  const [ipAddress, setIpAddress] = useState(
+    "0x8F7a0fe18D747399E623ca0F92Bd0159148c5776"
+  );
   const [selectedChain, setSelectedChain] = useState(0);
   const [amount, setAmount] = useState("");
   const [tipStatus, setTipStatus] = useState("idle"); // idle, processing, completed
@@ -32,8 +40,18 @@ export default function Home() {
     { id: base.id, name: "Base", logo: "/base.jpeg", currency: "ETH" },
     { id: polygon.id, name: "Polygon", logo: "/polygon.jpeg", currency: "POL" },
     { id: bsc.id, name: "BNB", logo: "/bnb.png", currency: "BNB" },
-    { id: arbitrum.id, name: "Arbitrum", logo: "/arbitrum.png", currency: "ETH" },
-    { id: avalanche.id, name: "Avalanche", logo: "/avax.png", currency: "AVAX" },
+    {
+      id: arbitrum.id,
+      name: "Arbitrum",
+      logo: "/arbitrum.png",
+      currency: "ETH",
+    },
+    {
+      id: avalanche.id,
+      name: "Avalanche",
+      logo: "/avax.png",
+      currency: "AVAX",
+    },
   ];
 
   useEffect(() => {
@@ -42,11 +60,13 @@ export default function Home() {
       setIsLoadingBalance(true);
       const publicClient = createPublicClient({
         chain: supportedChains[chains[selectedChain].id],
-        transport: http(supportedChains[chains[selectedChain].id].rpcUrls.default.http[0]),
+        transport: http(
+          supportedChains[chains[selectedChain].id].rpcUrls.default.http[0]
+        ),
       });
       const balance = await publicClient.getBalance({
-        address: primaryWallet.address,
-      })
+        address: primaryWallet.address as Hex,
+      });
       setUserBalance(parseFloat(formatEther(balance)).toFixed(4));
       setIsLoadingBalance(false);
     };
@@ -66,7 +86,7 @@ export default function Home() {
     if (primaryWallet && primaryWallet.connector.supportsNetworkSwitching()) {
       primaryWallet.switchNetwork(mainnet.id);
     }
-  }, [primaryWallet])
+  }, [primaryWallet]);
 
   const handleNextStep = () => {
     console.log(step, ipAddress, selectedChain, amount);
@@ -146,13 +166,14 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-semibold">Connect Your Wallet</h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Please connect your wallet to continue with tipping IP Asset creators
+                    Please connect your wallet to continue with tipping IP Asset
+                    creators
                   </p>
                   {/* This button will trigger Dynamic wallet connect modal */}
                   <Button
                     className="w-full bg-stone-200 hover:bg-stone-300 dark:bg-stone-900 dark:hover:bg-stone-800 text-black dark:text-white"
                     onClick={() => {
-                      setShowAuthFlow(true)
+                      setShowAuthFlow(true);
                     }}
                   >
                     Log in or sign up
@@ -205,15 +226,18 @@ export default function Home() {
                       {chains.map((chain, idx) => (
                         <div
                           key={chain.id}
-                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${selectedChain === idx
-                            ? "border-stone-500 bg-stone-100 dark:bg-stone-900"
-                            : "border-stone-300 dark:border-gray-600 hover:border-stone-500 dark:hover:border-stone-500"
-                            }`}
+                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all ${
+                            selectedChain === idx
+                              ? "border-stone-500 bg-stone-100 dark:bg-stone-900"
+                              : "border-stone-300 dark:border-gray-600 hover:border-stone-500 dark:hover:border-stone-500"
+                          }`}
                           onClick={async () => {
-                            if (primaryWallet?.connector.supportsNetworkSwitching()) {
+                            if (
+                              primaryWallet?.connector.supportsNetworkSwitching()
+                            ) {
                               setIsLoadingBalance(true);
                               await primaryWallet.switchNetwork(chain.id);
-                              setSelectedChain(idx)
+                              setSelectedChain(idx);
                             }
                           }}
                         >
@@ -275,11 +299,16 @@ export default function Home() {
                   <Button
                     className="w-full bg-stone-600 hover:bg-stone-700 dark:bg-stone-600 dark:hover:bg-stone-700 text-white"
                     disabled={
-                      !amount || amount >= userBalance || parseFloat(amount) <= 0
+                      !amount ||
+                      amount >= userBalance ||
+                      parseFloat(amount) <= 0
                     }
                     onClick={handleNextStep}
                   >
-                    {amount >= userBalance ? "Insufficient Balance" : "Send Royalties"} <ChevronRight className="ml-2 h-4 w-4" />
+                    {amount >= userBalance
+                      ? "Insufficient Balance"
+                      : "Send Royalties"}{" "}
+                    <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               ) : (
@@ -304,7 +333,10 @@ export default function Home() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Chain:</span>
-                      <Badge variant="outline" className="capitalize border-stone-300 dark:border-gray-600 text-stone-600 dark:text-gray-300">
+                      <Badge
+                        variant="outline"
+                        className="capitalize border-stone-300 dark:border-gray-600 text-stone-600 dark:text-gray-300"
+                      >
                         {chains[selectedChain].name}
                       </Badge>
                     </div>
@@ -323,10 +355,11 @@ export default function Home() {
                       {processingSteps.map((step, index) => (
                         <div
                           key={index}
-                          className={`flex items-center w-full ${index <= currentProcessingStep
-                            ? "text-black dark:text-white"
-                            : "text-stone-400 dark:text-gray-500"
-                            }`}
+                          className={`flex items-center w-full ${
+                            index <= currentProcessingStep
+                              ? "text-black dark:text-white"
+                              : "text-stone-400 dark:text-gray-500"
+                          }`}
                         >
                           {tipStatus === "completed" ? (
                             <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500 mr-3" />
@@ -337,10 +370,27 @@ export default function Home() {
                           ) : (
                             <div className="h-5 w-5 rounded-full border-2 border-stone-300 dark:border-gray-600 mr-3" />
                           )}
-                          <span className="text-sm">{step + ((index == 0 || index == 1) ? chains[selectedChain].name : "")}</span>
-                          {(sourceTx != "" && index == 0) || (destTx != '' && index == 4) && <div onClick={() => {
-                            window.open("https://etherscan.io/tx/", "_blank")
-                          }} className="flex-1 flex justify-end items-center text-xs space-x-1 cursor-pointer hover:font-semibold"><p>View Tx</p> <ArrowUpRightFromSquare className="w-3 h-3" /> </div>}
+                          <span className="text-sm">
+                            {step +
+                              (index == 0 || index == 1
+                                ? chains[selectedChain].name
+                                : "")}
+                          </span>
+                          {(sourceTx != "" && index == 0) ||
+                            (destTx != "" && index == 4 && (
+                              <div
+                                onClick={() => {
+                                  window.open(
+                                    "https://etherscan.io/tx/",
+                                    "_blank"
+                                  );
+                                }}
+                                className="flex-1 flex justify-end items-center text-xs space-x-1 cursor-pointer hover:font-semibold"
+                              >
+                                <p>View Tx</p>{" "}
+                                <ArrowUpRightFromSquare className="w-3 h-3" />{" "}
+                              </div>
+                            ))}
                         </div>
                       ))}
                     </div>
@@ -349,8 +399,8 @@ export default function Home() {
                   {tipStatus === "completed" && (
                     <div className="text-center">
                       <p className="text-sm text-green-600 dark:text-green-400 mb-4">
-                        Your payment has been successfully processed and royalties
-                        paid to the IP Asset Address
+                        Your payment has been successfully processed and
+                        royalties paid to the IP Asset Address
                       </p>
                       <Button
                         className="mt-2 bg-stone-600 hover:bg-stone-700 dark:bg-stone-600 dark:hover:bg-stone-700 text-white font-semibold"
